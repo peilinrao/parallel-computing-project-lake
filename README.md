@@ -16,7 +16,7 @@ Although we've did some research in the implementation of water wave simulation,
 There is a high communication to computation ratio in this pyramid generation kernels. Also the layers of adjustments (for example a rock is thrown into the lake, or some wind approaches the water surface, causing different particle behavior of the water surface) should be able to access with good locality and communicate between thread/blocks with the minimum information transfering.
 
 ## Constraints
-The randomness of the disturbing position of the water surface can easily create workload imbalancing in parallization this computation. We need to find a good way to balance the work per thread when different extents disturbing happens at arbitrary position.
+The randomness of the disturbing position of the water surface can easily create workload imbalancing in parallization this computation. We need to find a good way to balance the workload per thread when different extents disturbing happens at arbitrary position.
 
 ## Resources
 Our inspiration of this project comes from [this paper](http://www.gmrv.es/Publications/2016/CMTKPO16/main.pdf), which ellaborate on the methods of designing a " compact multiresolution dispersion kernel" for fluid simulation that is based on pyramid kernels. 
@@ -24,9 +24,12 @@ Our inspiration of this project comes from [this paper](http://www.gmrv.es/Publi
 ## Goal and Deliverables
 
 HOPE TO ACHIEVE ("75%"): fully functional parallelized water wave simulation without features such as reflecting boundary (wave reflects when touching the shore) and shadow mask propogation (a method that improves the efficient shared memory usage).  
+
 PLAN TO ACHIEVE ("100%"): fully functional parallelized water wave simulation with features such as reflecting boundary and shadow mask propogation.  
-EXTRA GOAL ("125")： improve the algorithm of multiresolution dispersion kernel with either better resolution/visual effects or better performance.  
-Our poster session's demo would be interaction. Other students can see our lake simulation dynamically changing when they "throw" an object into the water. They can directly see the speedup by parallislem during any time period or over any action taken.  
+
+EXTRA GOAL ("125")： improve the algorithm of multiresolution dispersion kernel with either better resolution/visual effects or better performance. 
+
+Our poster session's demo would be interactive. Other students can see our lake simulation dynamically changing when they "throw" an object into the water. They can directly see the speedup by parallislem during any time period or over any action taken.  
 
 ## Platform Choice
 We plan to use C++ with CUDA support for implementation and OpenGL for persenting the simulating results. We choose to use CUDA since NVIDIA GPUs are the most common way to accelerate computer graphics algorithms. OpenGL is powerful enough to draw the waves in order to present our beautiful simulated lake.
@@ -34,6 +37,6 @@ We plan to use C++ with CUDA support for implementation and OpenGL for persentin
 ## Schedule
 1st week: read paper, do more research about this problem, and plan our implementation  
 2nd week: implement the sequential version and try to get the algorithm working  
-3rd week: implement the naive parallel version, benchmark its performance. (submit it for intermediate checkpoint)  
+3rd week: implement the naive parallel version, benchmark its performance. (Submit it for intermediate checkpoint)  
 4th week: improve the parallel version of the program  
-5th week: do analytics and write report  
+5th week: perform analysis and write report  
