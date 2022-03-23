@@ -32,8 +32,8 @@ Our poster session's demo would be interaction. Other students can see our lake 
 We plan to use C++ with CUDA support for implementation and OpenGL for persenting the simulating results. We choose to use CUDA since NVIDIA GPUs are the most common way to accelerate computer graphics algorithms. OpenGL is powerful enough to draw the waves in order to present our beautiful simulated lake.
 
 ## Schedule
-1st week: read paper, do more research about this problem, and plan our implementation
-2nd week: implement the sequential version and try to get the algorithm working
-3rd week: implement the naive parallel version, benchmark its performance. (submit it for intermediate checkpoint)
-4th week: improve the parallel version of the program
-5th week: write report
+1st week: read paper, do more research about this problem, and plan our implementation  
+2nd week: implement the sequential version and try to get the algorithm working  
+3rd week: implement the naive parallel version, benchmark its performance. (submit it for intermediate checkpoint)  
+4th week: improve the parallel version of the program  
+5th week: do analytics and write report  
