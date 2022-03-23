@@ -23,10 +23,10 @@ Our inspiration of this project comes from [this paper](http://www.gmrv.es/Publi
 
 ## Goal and Deliverables
 
-HOPE TO ACHIEVE ("75%"): fully functional parallelized water wave simulation without features such as reflecting boundary (wave reflects when touching the shore) and shadow mask propogation (a method that improves the efficient shared memory usage).
-PLAN TO ACHIEVE ("100%"): fully functional parallelized water wave simulation with features such as reflecting boundary and shadow mask propogation.
-EXTRA GOAL ("125")： improve the algorithm of multireolution dispersion kernel with either better resolution/visual effects or better performance.
-Our poster session's demo would be interaction. Other students can see our lake simulation dynamically changing when they "throw" an object into the water. They can directly see the speedup by parallislem during any time period or over any action taken.
+HOPE TO ACHIEVE ("75%"): fully functional parallelized water wave simulation without features such as reflecting boundary (wave reflects when touching the shore) and shadow mask propogation (a method that improves the efficient shared memory usage).  
+PLAN TO ACHIEVE ("100%"): fully functional parallelized water wave simulation with features such as reflecting boundary and shadow mask propogation.  
+EXTRA GOAL ("125")： improve the algorithm of multireolution dispersion kernel with either better resolution/visual effects or better performance.  
+Our poster session's demo would be interaction. Other students can see our lake simulation dynamically changing when they "throw" an object into the water. They can directly see the speedup by parallislem during any time period or over any action taken.  
 
 ## Platform Choice
 We plan to use C++ with CUDA support for implementation and OpenGL for persenting the simulating results. We choose to use CUDA since NVIDIA GPUs are the most common way to accelerate computer graphics algorithms. OpenGL is powerful enough to draw the waves in order to present our beautiful simulated lake.
