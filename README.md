@@ -6,38 +6,34 @@ The simulation focuses on providing real dispersion properties of water waves an
 
 ## Background
 The application we are going to implement is a simulation of the water surface that is constantly being disturbed.
-The fluid simulation is actually a multi-layered computation. The 
+The fluid simulation is actually a multi-layered computation. The most common way of doing this is to adopt pyramid generation kernels. 
+We will implement a multireolution dispersion kernel with low-frequency compensation that supports interaction with objects and shadow mask propagation. The multilayer particle-wise upsampling and downsampling involved in implementing this multireolution dispersion kernel can be benefit from parallel programming. A CUDA based solution breaks the water surface into different blocks, performs shared-varibale computation within blocks and synchronize between blocks after each layer of computation.
 
 ## Challenge
+Although we've did some research in the implementation of water wave simulation, the effect of this multireolution dispersion kernel mechanism remains unclear for us. The determination of where, when and how to do synchronization between blocks is challenging. Besides, finding the balance between computational cost and simulation accuracy in this implementation can be hard.  We hope to learn good methods or even give some improvement on parallizing computer graphics code in this project.
 
 ## Workload
+There is a high communication to computation ratio in this pyramid generation kernels. Also the layers of adjustments (for example a rock is thrown into the lake, or some wind approaches the water surface, causing different particle behavior of the water surface) should be able to access with good locality and communicate between thread/blocks with the minimum information transfering.
 
 ## Constraints
+The randomness of the disturbing position of the water surface can easily create workload imbalancing in parallization this computation. We need to find a good way to balance the work per thread when different extents disturbing happens at arbitrary position.
 
 ## Resources
-Our inspiration of this project comes from this paper 
+Our inspiration of this project comes from [this paper](http://www.gmrv.es/Publications/2016/CMTKPO16/main.pdf), which ellaborate on the methods of designing a " compact multiresolution dispersion kernel" for fluid simulation that is based on pyramid kernels. 
 
 ## Goal and Deliverables
 
+HOPE TO ACHIEVE ("75%"): fully functional parallelized water wave simulation without features such as reflecting boundary (wave reflects when touching the shore) and shadow mask propogation (a method that improves the efficient shared memory usage).
+PLAN TO ACHIEVE ("100%"): fully functional parallelized water wave simulation with features such as reflecting boundary and shadow mask propogation.
+EXTRA GOAL ("125")： improve the algorithm of multireolution dispersion kernel with either better resolution/visual effects or better performance.
+Our poster session's demo would be interaction. Other students can see our lake simulation dynamically changing when they "throw" an object into the water. They can directly see the speedup by parallislem during any time period or over any action taken.
+
 ## Platform Choice
-C++ and OpenGL for simulation
+We plan to use C++ with CUDA support for implementation and OpenGL for persenting the simulating results. We choose to use CUDA since NVIDIA GPUs are the most common way to accelerate computer graphics algorithms. OpenGL is powerful enough to draw the waves in order to present our beautiful simulated lake.
 
 ## Schedule
-
-SUMMARY: Summarize your project in no more than 2-3 sentences. Describe what you plan to do and what parallel systems you will be working with. Example one-liners include (you should add a bit more detail):
-We are going to implement an optimized Smoothed Particle Hydrodynamics fluid solver on the NVIDIA GPUs in the lab.
-We are going port the Go runtime to Blacklight.
-We are going to create optimized implementations of sparse-matrix multiplication on both GPU and multi-core CPU platforms, and perform a detailed analysis of both systemsâ€™ performance characteristics.
-We are going to back-engineer the unpublished machine specifications of the GPU in the tablet my partner just purchased. 2 â€¢ We are going to implement two possible algorithms for a real-time computer vision application on a mobile device and measure their energy consumption in the lab.
-BACKGROUND: If your project involves accelerating a compute-intensive application, describe the application or piece of the application you are going to implement in more detail. This description need only be a few paragraphs. It might be helpful to include a block diagram or pseudocode of the basic idea. An important detail is what aspects of the problem might benefit from parallelism and why?
-THE CHALLENGE: Describe why the problem is challenging. What aspects of the problem might make it difficult to parallelize? In other words, what to you hope to learn by doing the project?
-Describe the workload: what are the dependencies, what are its memory access characteristics? (is there locality? is there a high communication to computation ratio?), is there divergent execution?
-Describe constraints: What are the properties of the system that make mapping the workload to it challenging?
-RESOURCES: Describe the resources (type of computers, starter code, etc.) you will use. What code base will you start from? Are you starting from scratch or using an existing piece of code? Is there a book or paper that you are using as a reference (if so, provide a citation)? Are there any other resources you need, but havenâ€™t figured out how to obtain yet? Could you benefit from access to any special machines?
-GOALS AND DELIVERABLES: Describe the deliverables or goals of your project. This is by far the most important section of the proposal!
-Separate your goals into what you PLAN TO ACHIEVE ("100%" -- what you believe you must get done to have a successful project and get the grade you expect) and an extra goal or two ("125%") that you HOPE TO ACHIEVE if the project goes really well and you get ahead of schedule, as well as goals in case the work goes more slowly ("75%"). It may not be possible to state precise performance goals at this time, but we encourage you be as precise as possible. If you do state a goal, give some justification of why you think you can achieve it. (e.g., I hope to speed up my starter code 10x, because if I did it would run in real-time.)
-If applicable, describe the demo you plan to show at the poster session (Will it be an interactive demo? Will you show an output of the program that is really neat? Will you show speedup graphs?). Specifically, what will you show us that will demonstrate you did a good job?
-If your project is an analysis project, what are you hoping to learn about the workload or system being studied? What question(s) do you plan to answer in your analysis?
-Systems project proposals should describe what the system will be capable of and what performance is hoped to be achieved.
-PLATFORM CHOICE: Describe why the platform (computer and/or language) you have chosen is a good one for your needs. Why does it make sense to use this parallel system for the workload you have chosen?
-SCHEDULE: Produce a schedule for your project. Your schedule should have at least one item to do per week. List what you plan to get done each week from now until the parallelism competition in order to meet your project goals. Keep in mind that due to other classes, youâ€™ll have more time to work some weeks than others (work that into the schedule). You will need to re-evaluate your progress at the end of each week and update this schedule accordingly. Note the intermediate checkpoint deadline is April 11th. In your schedule we encourage you to be precise as precise as possible. Itâ€™s often helpful to work backward in time from your deliverables and goals, writing down all the little things youâ€™ll need to do (establish the dependencies).
+1st week: read paper, do more research about this problem, and plan our implementation
+2nd week: implement the sequential version and try to get the algorithm working
+3rd week: implement the naive parallel version, benchmark its performance. (submit it for intermediate checkpoint)
+4th week: improve the parallel version of the program
+5th week: write report
