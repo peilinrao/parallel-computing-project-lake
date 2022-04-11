@@ -35,14 +35,14 @@ Our poster session's demo would be interactive. Other students can see our lake 
 We plan to use C++ with CUDA support for implementation and OpenGL for persenting the simulating results. We choose to use CUDA since NVIDIA GPUs are the most common way to accelerate computer graphics algorithms. OpenGL is powerful enough to draw the waves in order to present our beautiful simulated lake.
 
 ## Schedule
-1st week: read paper, do more research about this problem, and plan our implementation  
-2nd week: implement the sequential version and try to get the algorithm working  
-3rd week: implement the naive parallel version, benchmark its performance. (Submit it for intermediate checkpoint)  
-4th week: improve the parallel version of the program  
-5th week: perform analysis and write report  
+3.23 - 4.11[Done]: read the paper and plan for our implementation
+4.11 - 4.20: implement the sequential version 
+4.20 - 4.24: implement the naive parallel version, benchmark its performance. (Submit it for intermediate checkpoint)  
+4.24 - 4.29: improve the parallel version of the program and draft the report with previous benchmarks 
+4.29 - 5.5: prepare for the poster session 
 
 
 ## Milestone
-As the milestone, we finished research about wave equations and algorithms needed for the sequentail version of the lake simulator. We have a demo with python and matplotlib about the fluid propagation.
+As planned previously, we finished researching about wave equations and algorithms needed for the sequential version of our lake simulator. We have a demo with python and matplotlib about the fluid propagation.
 
-We still believe that we are able to produce all the deliverables. We will show a demo about the sequential and GPU accelerated version of lake simulations. We have no preliminary results since we have not started to build the GPU version of it. The main issue that concerns me is the package choice for animation representation since I think matplotlib might not have good GPU support. If it really turns out to be the case, we will switch to another graphics package that has generic GPU support. Also, we plan to use numba for GPU computation acceleration on python programs.
+We still believe that we are able to produce all the deliverables. We plan to show a demo about the sequential and GPU accelerated version of lake simulations at the poster sessino. We have no preliminary results since we have not started to build the GPU version of it. The main concern we have right now is the package choice for animation representation since matplotlib might not have good GPU support. If this turns out to be true, we will try to find another graphics package that has generic GPU support. We plan to use numba for GPU computation acceleration on python programs. The revised timeline is also updated above in the schedule section.
