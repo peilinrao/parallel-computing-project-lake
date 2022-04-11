@@ -40,3 +40,9 @@ We plan to use C++ with CUDA support for implementation and OpenGL for persentin
 3rd week: implement the naive parallel version, benchmark its performance. (Submit it for intermediate checkpoint)  
 4th week: improve the parallel version of the program  
 5th week: perform analysis and write report  
+
+
+## Milestone
+As the milestone, we finished research about wave equations and algorithms needed for the sequentail version of the lake simulator. We have a demo with python and matplotlib about the fluid propagation.
+
+We still believe that we are able to produce all the deliverables. We will show a demo about the sequential and GPU accelerated version of lake simulations. We have no preliminary results since we have not started to build the GPU version of it. The main issue that concerns me is the package choice for animation representation since I think matplotlib might not have good GPU support. If it really turns out to be the case, we will switch to another graphics package that has generic GPU support.
