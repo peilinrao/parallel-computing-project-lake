@@ -43,6 +43,6 @@ We plan to use C++ with CUDA support for implementation and OpenGL for persentin
 
 
 ## Milestone
-As planned previously, we finished researching about wave equations and algorithms needed for the sequential version of our lake simulator. We have a demo with python and matplotlib about the fluid propagation.
+As planned previously, we finished researching about [wave equations and algorithms](http://www.coastalwiki.org/wiki/Shallow-water_wave_theory#Derivation_of_the_Airy_Wave_equations) needed for the sequential version of our lake simulator. We have a demo with python and matplotlib about the fluid propagation.
 
 We still believe that we are able to produce all the deliverables. We plan to show a demo about the sequential and GPU accelerated version of lake simulations at the poster sessino. We have no preliminary results since we have not started to build the GPU version of it. The main concern we have right now is the package choice for animation representation since matplotlib might not have good GPU support. If this turns out to be true, we will try to find another graphics package that has generic GPU support. We plan to use numba for GPU computation acceleration on python programs. The revised timeline is also updated above in the schedule section.
