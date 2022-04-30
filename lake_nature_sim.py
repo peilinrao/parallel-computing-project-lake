@@ -7,8 +7,8 @@ import cmath
 from mpl_toolkits.mplot3d import Axes3D
 
 # method
+method = "fft"
 method = "bf"
-# method = "fft"
 
 # set N = M = Lx = Lz for simplicity
 N = 10 # sample density for x
@@ -18,6 +18,7 @@ Lz = 10 # Z range in coordinate
 N = M = Lx = Lz = 10
 
 # constants
+epsilon = 0.000001
 g = 9.8 # sorry newton
 Vw =3 # wind velocity
 Dw = (-4.5, 9.4) # wind direction
@@ -26,9 +27,9 @@ A = 3 # magnitude
 
 # (x,z) is 2d coordinates and y is height
 x = np.arange(-Lx/2,Lx/2+1,1)
-x[int(Lx/2)] = 0.000001
+x[int(Lx/2)] = epsilon
 z = np.arange(-Lz/2,Lz/2+1,1)
-z[int(Lz/2)] = 0.000001
+z[int(Lz/2)] = epsilon
 x_mesh, z_mesh = np.meshgrid(x, z)
 yarray = np.zeros((Lx+1, Lz+1, frame))
 
@@ -38,6 +39,8 @@ epsilon_real = samples[0]
 epsilon_imag = samples[1]
 
 # this section denotes the the brute force algorithm
+
+
 def h0(k, conjugate = False):
     k_length = math.sqrt(k[0]**2 + k[1]**2)
     k_unit = (k[0]/k_length, k[1]/k_length)
@@ -49,6 +52,16 @@ def h0(k, conjugate = False):
     if conjugate:
         return complex(1/math.sqrt(2) * epsilon_real * Ph, -1/math.sqrt(2) * epsilon_imag * Ph)
     return complex(1/math.sqrt(2) * epsilon_real * Ph, 1/math.sqrt(2) * epsilon_imag * Ph)
+
+def h(k, t):
+    k_length = math.sqrt(k[0]**2 + k[1]**2)
+    w = math.sqrt(g*k_length)
+    e_iwkt = complex(math.cos(w*t), math.sin(w*t))
+    e_neg_iwkt = complex(math.cos(-w*t), math.sin(-w*t))
+
+    neg_k = (-k[0], -k[1])
+    h = h0(k, False) * e_iwkt + h0(neg_k, True) * e_neg_iwkt
+    return h
 
 def H(X, Z, t):
     update_y = np.zeros((Lx+1, Lz+1))
@@ -65,19 +78,11 @@ def H(X, Z, t):
                     k_z = Z[k_z_index]
 
                     #(k_x, k_z) is just a point in the plane
-
                     k = (2 * math.pi * k_x / Lx, 2 * math.pi * k_z / Lz)
                     k_dot_v = k[0]*v[0] + k[1]*v[1]
                     e_ikx = complex(math.cos(k_dot_v), math.sin(k_dot_v))
                     
-                    k_length = math.sqrt(k[0]**2 + k[1]**2)
-                    w = math.sqrt(g*k_length)
-                    e_iwkt = complex(math.cos(w*t), math.sin(w*t))
-                    e_neg_iwkt = complex(math.cos(-w*t), math.sin(-w*t))
-
-                    neg_k = (-k[0], -k[1])
-                    h = h0(k, False) * e_iwkt + h0(neg_k, True) * e_neg_iwkt
-                    res_H += (h * e_ikx)
+                    res_H += (h(k, t) * e_ikx)
             update_y[x_index, z_index] = res_H.real
             # print(res_H)
     print("done for t = ", t)
@@ -86,18 +91,35 @@ def H(X, Z, t):
     
        
 def FFT(X, Z, t):
-    res_H = 0
-    # for n in range(N):
-    #     for m in range(M):
-
-    pass
+    
+    update_y = np.zeros((Lx+1, Lz+1))
+    for x_index in range(X.shape[0]):
+        for z_index in  range(Z.shape[0]):
+            factor = (-1)**(int(X[x_index]) + int(Z[z_index]))
+            x_value = X[x_index]
+            z_value = Z[z_index]
+            res_H = 0
+            for n in range(N):
+                e_2pinxiN = complex(math.cos(2*math.pi * (n + N/2)/N * x_index), math.sin(2*math.pi * (n + N/2)/N * x_index))
+                subsum = 0
+                for m in range(M):
+                    e_2pimziN = complex(math.cos(2*math.pi * (m + N/2)/N * z_index), math.sin(2*math.pi * (m + N/2)/N * z_index))
+                    k_x = X[n]
+                    k_z = Z[m]
+                    k = (2 * math.pi * k_x / Lx, 2 * math.pi * k_z / Lz)
+                    subsum += e_2pimziN * h(k, t)
+                res_H += e_2pinxiN * subsum
+            res_H *= factor
+            update_y[x_index, z_index] = res_H.real
+    
+    return update_y
 
 # all computation is done here
 for t in range(frame):
     if method == "bf":
         yarray[:,:,t] = H(x, z, t/10)
     if method == "fft":
-        yarray[:,:,t] = FFT(x, z, t/8)
+        yarray[:,:,t] = FFT(x, z, t/10)
 
 
 fig = plt.figure(figsize=(12,12))
