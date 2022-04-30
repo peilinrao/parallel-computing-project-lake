@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # method
 method = "fft"
-method = "bf"
+# method = "bf"
 
 # set N = M = Lx = Lz for simplicity
 N = 10 # sample density for x
@@ -22,7 +22,7 @@ epsilon = 0.000001
 g = 9.8 # sorry newton
 Vw =3 # wind velocity
 Dw = (-4.5, 9.4) # wind direction
-frame = 40
+frame = 10
 A = 3 # magnitude
 
 # (x,z) is 2d coordinates and y is height
@@ -90,8 +90,7 @@ def H(X, Z, t):
     return update_y
     
        
-def FFT(X, Z, t):
-    
+def pre_FFT(X, Z, t):
     update_y = np.zeros((Lx+1, Lz+1))
     for x_index in range(X.shape[0]):
         for z_index in  range(Z.shape[0]):
@@ -100,12 +99,12 @@ def FFT(X, Z, t):
             z_value = Z[z_index]
             res_H = 0
             for n in range(N):
-                e_2pinxiN = complex(math.cos(2*math.pi * (n + N/2)/N * x_index), math.sin(2*math.pi * (n + N/2)/N * x_index))
+                k_x = X[n]
+                e_2pinxiN = complex(math.cos(2*math.pi * (k_x + N/2)/N * x_value), math.sin(2*math.pi * (k_x + N/2)/N * x_value))
                 subsum = 0
                 for m in range(M):
-                    e_2pimziN = complex(math.cos(2*math.pi * (m + N/2)/N * z_index), math.sin(2*math.pi * (m + N/2)/N * z_index))
-                    k_x = X[n]
                     k_z = Z[m]
+                    e_2pimziN = complex(math.cos(2*math.pi * (k_z + N/2)/N * z_value), math.sin(2*math.pi * (k_z + N/2)/N * z_value))
                     k = (2 * math.pi * k_x / Lx, 2 * math.pi * k_z / Lz)
                     subsum += e_2pimziN * h(k, t)
                 res_H += e_2pinxiN * subsum
@@ -118,8 +117,8 @@ def FFT(X, Z, t):
 for t in range(frame):
     if method == "bf":
         yarray[:,:,t] = H(x, z, t/10)
-    if method == "fft":
-        yarray[:,:,t] = FFT(x, z, t/10)
+    if method == "pre_FFT":
+        yarray[:,:,t] = pre_FFT(x, z, t/10)
 
 
 fig = plt.figure(figsize=(12,12))
