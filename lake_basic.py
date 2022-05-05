@@ -9,6 +9,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import mpi4py
 import sys
 from mpi4py import MPI
+from numba import cuda
+from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_normal_float32
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -25,11 +27,11 @@ rank = comm.Get_rank()
 # hyperparameters
 # (2) a little wave
 N = M = Lx = Lz = 256
-mu, sigma = 0, 0.003 # mean and standard deviation
+mu, sigma = 0, 1 # mean and standard deviation
 Vw = 30 # wind velocity
 Dw = (4, 0) # wind direction
 frame = 20
-A = 0.02 # magnitude
+A = 0.003**2 * 0.02 # magnitude
 
 # constants
 epsilon = 0
@@ -42,7 +44,63 @@ z = np.arange(N) - int(N/2)
 x_mesh, z_mesh = np.meshgrid(x, z)
 yarray = np.zeros((Lx, Lz, frame))
 
-# helper functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# cuda helper functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+@cuda.jit(device=True)
+def h0_cuda(k, conjugate, rng):
+    epsilon_real = xoroshiro128p_normal_float32(rng, cuda.grid(1))
+    epsilon_imag = xoroshiro128p_normal_float32(rng, cuda.grid(1))
+
+    # epsilon_real = 0.05
+    # epsilon_imag = 0.05
+
+    k_length = cmath.sqrt(k[0]**2 + k[1]**2)
+
+    if k_length == 0:
+        k_unit = (0, 0)
+    else:
+        k_unit = (k[0]/k_length, k[1]/k_length)
+
+    Dw_length = cmath.sqrt(Dw[0]**2 + Dw[1]**2)
+    Dw_unit = (Dw[0]/Dw_length, Dw[1]/Dw_length)
+    L = Vw**2/g
+
+    kDw_length = abs(k_unit[0] * Dw_unit[0] + k_unit[1] * Dw_unit[1])
+    if k_length == 0:
+        Ph = 0
+    else:
+        Ph = cmath.sqrt(A * cmath.exp(-1/((k_length*L)**2)) / (k_length**4) * (kDw_length**2))
+
+    
+    result = 1/cmath.sqrt(2) * float(epsilon_real) * Ph +  1/cmath.sqrt(2) * float(epsilon_imag) * Ph * 1j
+    if conjugate:
+        result = 1/cmath.sqrt(2) * float(epsilon_real) * Ph - 1/cmath.sqrt(2) * float(epsilon_imag) * Ph * 1j
+
+    return result
+
+@cuda.jit(device=True)
+def h_cuda(k, t, rng):
+    k_length = cmath.sqrt(k[0]**2 + k[1]**2)
+    w = cmath.sqrt(g*k_length)
+    e_iwkt = cmath.exp(w * t * 1j)
+    e_neg_iwkt = cmath.exp(-w * t * 1j)
+    neg_k = (-k[0], -k[1])
+    h = h0_cuda(k, False, rng) * e_iwkt + h0_cuda(neg_k, True, rng) * e_neg_iwkt
+    return h
+
+# rewrite h part using cuda
+@cuda.jit
+def h_kernal(array, t, rng):
+    pos = cuda.grid(1)
+    X_index = pos / N
+    Z_index = pos % N
+    X_value = X_index - int(N/2)
+    Z_value = Z_index - int(N/2)
+    k = (2 * math.pi * X_value / Lx, 2 * math.pi *  Z_value / Lz)
+    array[pos] = h_cuda(k, t, rng)
+
+# mode helper functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # input x, return X
 def dft(x):
@@ -63,8 +121,6 @@ def fft_combine(res):
     K_split2 = K[int(length/2):]
     return np.concatenate([fft1 +  K_split1 * fft2,
                             fft1 +  K_split2 * fft2])
-
-
 
 def workerID_bin2dec(workerID):
     workerID_dec = 0
@@ -193,6 +249,9 @@ def h(k, t):
     h = h0(k, False) * e_iwkt + h0(neg_k, True) * e_neg_iwkt
     return h
 
+def make_term(m_or_n, x_or_z):
+    return np.exp(2j * np.pi * (m_or_n + N/2)/N * x_or_z)
+
 # helper functions ends +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # brute force algorithm for lake algorithm
@@ -251,10 +310,6 @@ def bf_vector(X, Z, t):
             update_y[x_index, z_index] = abs(res_H)
             
     return update_y
-
-def make_term(m_or_n, x_or_z):
-    return np.exp(2j * np.pi * (m_or_n + N/2)/N * x_or_z)
-
 
 # changing the algorithm to the form of FFT
 def bf_vector_precalch(X, Z, t):
@@ -361,9 +416,11 @@ def FFT(X, Z, t):
 
     return np.multiply(update_y, factor)
 
+
 def FFT_P(X, Z, t, rank, num_of_workers):
     h_hat = np.zeros((N, N),dtype=np.complex128)
     if rank == 0:
+        # do this with cuda
         for x_index in range(X.shape[0]):
             for z_index in range(Z.shape[0]):
                 k = (2 * np.pi * X[x_index] / Lx, 2 * np.pi *  Z[z_index] / Lz)
@@ -392,6 +449,41 @@ def FFT_P(X, Z, t, rank, num_of_workers):
     else:
         return None
 
+def FFT_PC(X, Z, t, rank, num_of_workers):
+    h_hat = np.zeros((N, N),dtype=np.complex128)
+    if rank == 0:
+        rng = create_xoroshiro128p_states(N * N, seed=1)
+        h_hat = np.zeros(N * N,dtype=np.complex128)
+        h_kernal[N, N](h_hat, t, rng)
+        h_hat = h_hat.reshape((N, N))
+
+    h_hat = comm.bcast(h_hat, root=0)
+        
+    
+    # factor array is simple so every worker should calculate their own one
+    factor = np.zeros((N, N))
+    for x_index in range(X.shape[0]):
+        for z_index in range(Z.shape[0]):
+            factor[x_index][z_index] = (-1) ** (int(X[x_index]) + int(Z[z_index]))
+
+   # this part can be make faster
+    update_y = np.zeros((N, N))
+    # firstFFT = np.apply_along_axis(parallel_FFT, 1, h_hat, rank, num_of_workers)
+    firstFFT = parallel_FFT(h_hat, rank, num_of_workers)
+    firstFFT = comm.bcast(firstFFT, root=0)
+    firstFFT = firstFFT.T
+
+    # distribute this results to others
+    secondFFT = parallel_FFT(firstFFT, rank, num_of_workers)
+    # secondFFT = np.apply_along_axis(parallel_FFT, 1, firstFFT, rank, num_of_workers)
+    if rank == 0:
+        update_y = secondFFT.T.real
+        result = np.multiply(update_y, factor)
+        return result
+    else:
+        return None
+
+
 if __name__ == '__main__':
     args = sys.argv[1:]
     method = args[0]
@@ -414,6 +506,12 @@ if __name__ == '__main__':
                 yarray[:,:,t] = FFT(x, z, t)
             else:
                 yarray[:,:,t] = FFT_P(x, z, t, rank, comm.size)
+        if method == "FFT_PC":
+            if comm.size == 1:
+                # reduced to single score FFT
+                yarray[:,:,t] = FFT(x, z, t)
+            else:
+                yarray[:,:,t] = FFT_PC(x, z, t, rank, comm.size)
     end = time.time()
 
     if rank == 0:
