@@ -13,13 +13,23 @@ from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
+# set of good looking parameters
+# (1) good and peace
+# N = M = Lx = Lz = 256
+# mu, sigma = 0, 0.001 # mean and standard deviation
+# Vw = 20 # wind velocity
+# Dw = (4, 4) # wind direction
+# frame = 5
+# A = 0.02 # magnitude
+
 # hyperparameters
-N = M = Lx = Lz = 128
-mu, sigma = 0, 0.01 # mean and standard deviation
-Vw = 200 # wind velocity
-Dw = (4, 4) # wind direction
-frame = 1
-A = 0.2 # magnitude
+# (2) a little wave
+N = M = Lx = Lz = 256
+mu, sigma = 0, 0.003 # mean and standard deviation
+Vw = 30 # wind velocity
+Dw = (4, 0) # wind direction
+frame = 20
+A = 0.02 # magnitude
 
 # constants
 epsilon = 0
@@ -43,8 +53,11 @@ def dft(x):
     return np.dot(M, x)
 
 # combine two fft results into a new one
-def fft_combine(fft1, fft2):
-    length = fft1.shape[0] + fft2.shape[0]
+def fft_combine(res):
+    length = res.shape[0]
+    fft1 = res[:int(length/2)]
+    fft2 = res[int(length/2):]
+
     K = np.exp(-2j * np.pi * np.arange(length) / length)
     K_split1 = K[:int(length/2)]
     K_split2 = K[int(length/2):]
@@ -78,6 +91,25 @@ def fft_vector(x):
         X = np.vstack([X_even + K * X_odd, X_even - K * X_odd])
     return X.ravel()
 
+def fft_recursion(x):
+    x = np.asarray(x, dtype=np.complex128)
+    length = x.shape[0]
+    if np.log2(length) % 1 > 0:
+        raise ValueError("Size Error")
+    elif length <= 2:
+        n = np.arange(length)
+        k = n.reshape((length, 1))
+        M = np.exp(-2j * np.pi * k * n / length)
+        return np.dot(M, x)
+    else:
+        X_even = fft_recursion(x[::2])
+        X_odd = fft_recursion(x[1::2])
+        K = np.exp(-2j * np.pi * np.arange(length) / length)
+        K_split1 = K[:int(length/2)]
+        K_split2 = K[int(length/2):]
+        return np.concatenate([X_even + K_split1 * X_odd,
+                               X_even + K_split2 * X_odd])
+
 def parallel_FFT(x, myrank, num_of_workers):
     # it describe what should each work do to perform a parallel_fft
 
@@ -92,11 +124,11 @@ def parallel_FFT(x, myrank, num_of_workers):
     while len(workerID) < max_stage:
         workerID = [0] + workerID
 
-    # init results
+        # init results
     results = x
     for i in workerID:
-        results = results[i::2]
-    results = fft_vector(results)
+        results = results[:, i::2]
+    results = np.apply_along_axis(fft_recursion, 1, results)
 
     #figure out what stage it is and what should I do
     while current_stage < max_stage:
@@ -107,7 +139,8 @@ def parallel_FFT(x, myrank, num_of_workers):
             source = (workerID_dec + 1) * (2 ** current_stage)
             tag = myrank * 1000 + source # tag == dest * 1000 + source
             recv = comm.recv(source=source, tag=tag)
-            results = fft_combine(results, recv)
+            results = np.concatenate((results,recv),axis=1)
+            results = np.apply_along_axis(fft_combine, 1, results)
             workerID = workerID[:-1]
             current_stage += 1
             
@@ -314,7 +347,6 @@ def FFT(X, Z, t):
 
    # this part can be make faster
     update_y = np.zeros((N, N))
-    # for z_index in range(Z.shape[0]):
     x_value = X[x_index]
     z_value = Z[z_index]
     N_array = np.arange(N)
@@ -322,19 +354,21 @@ def FFT(X, Z, t):
 
     # z_hat = np.exp(2j * np.pi * M_array/N * z_value)
     # firstFFT = np.dot(h_hat, z_hat)
-    firstFFT = np.apply_along_axis(fft_vector, 1, h_hat)
+    firstFFT = np.apply_along_axis(fft_recursion, 1, h_hat)
     firstFFT = firstFFT.T
-    secondFFT = np.apply_along_axis(fft_vector, 1, firstFFT)
+    secondFFT = np.apply_along_axis(fft_recursion, 1, firstFFT)
     update_y = secondFFT.T.real
 
     return np.multiply(update_y, factor)
 
 def FFT_P(X, Z, t, rank, num_of_workers):
     h_hat = np.zeros((N, N),dtype=np.complex128)
-    for x_index in range(X.shape[0]):
-        for z_index in range(Z.shape[0]):
-            k = (2 * np.pi * X[x_index] / Lx, 2 * np.pi *  Z[z_index] / Lz)
-            h_hat[x_index][z_index] = h(k, t)
+    if rank == 0:
+        for x_index in range(X.shape[0]):
+            for z_index in range(Z.shape[0]):
+                k = (2 * np.pi * X[x_index] / Lx, 2 * np.pi *  Z[z_index] / Lz)
+                h_hat[x_index][z_index] = h(k, t)
+    h_hat = comm.bcast(h_hat, root=0)
     
     factor = np.zeros((N, N))
     for x_index in range(X.shape[0]):
@@ -343,12 +377,14 @@ def FFT_P(X, Z, t, rank, num_of_workers):
 
    # this part can be make faster
     update_y = np.zeros((N, N))
-    firstFFT = np.apply_along_axis(parallel_FFT, 1, h_hat, rank, num_of_workers)
+    # firstFFT = np.apply_along_axis(parallel_FFT, 1, h_hat, rank, num_of_workers)
+    firstFFT = parallel_FFT(h_hat, rank, num_of_workers)
     firstFFT = comm.bcast(firstFFT, root=0)
     firstFFT = firstFFT.T
 
     # distribute this results to others
-    secondFFT = np.apply_along_axis(parallel_FFT, 1, firstFFT, rank, num_of_workers)
+    secondFFT = parallel_FFT(firstFFT, rank, num_of_workers)
+    # secondFFT = np.apply_along_axis(parallel_FFT, 1, firstFFT, rank, num_of_workers)
     if rank == 0:
         update_y = secondFFT.T.real
         result = np.multiply(update_y, factor)
@@ -381,7 +417,7 @@ if __name__ == '__main__':
     end = time.time()
 
     if rank == 0:
-        print("time needed:", end - start)
+        print("computation time needed:", end - start)
 
         # anime
         fig = plt.figure(figsize=(12,12))
@@ -396,8 +432,8 @@ if __name__ == '__main__':
         ani = animation.FuncAnimation(fig, update_plot, frame, fargs=(yarray, plot), interval=1)
         
         # save to local
-        # mywriter = animation.PillowWriter(fps=5)
-        # ani.save('temp.gif',writer=mywriter)
+        mywriter = animation.PillowWriter(fps=5)
+        ani.save('temp.gif',writer=mywriter)
 
         # show
-        plt.show()
+        # plt.show()
