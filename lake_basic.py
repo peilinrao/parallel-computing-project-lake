@@ -48,9 +48,9 @@ yarray = np.zeros((Lx, Lz, frame))
 
 
 @cuda.jit(device=True)
-def h0_cuda(k, conjugate, rng):
-    epsilon_real = xoroshiro128p_normal_float32(rng, cuda.grid(1))
-    epsilon_imag = xoroshiro128p_normal_float32(rng, cuda.grid(1))
+def h0_cuda(k, conjugate, random):
+    epsilon_real = random[cuda.grid(1)]
+    epsilon_imag = random[cuda.grid(1) + N]
 
     # epsilon_real = 0.05
     # epsilon_imag = 0.05
@@ -80,25 +80,25 @@ def h0_cuda(k, conjugate, rng):
     return result
 
 @cuda.jit(device=True)
-def h_cuda(k, t, rng):
+def h_cuda(k, t,  random_0, random_1):
     k_length = cmath.sqrt(k[0]**2 + k[1]**2)
     w = cmath.sqrt(g*k_length)
     e_iwkt = cmath.exp(w * t * 1j)
     e_neg_iwkt = cmath.exp(-w * t * 1j)
     neg_k = (-k[0], -k[1])
-    h = h0_cuda(k, False, rng) * e_iwkt + h0_cuda(neg_k, True, rng) * e_neg_iwkt
+    h = h0_cuda(k, False, random_0) * e_iwkt + h0_cuda(neg_k, True, random_1) * e_neg_iwkt
     return h
 
 # rewrite h part using cuda
 @cuda.jit
-def h_kernal(array, t, rng):
+def h_kernal(array, t, random_0, random_1):
     pos = cuda.grid(1)
     X_index = pos / N
     Z_index = pos % N
     X_value = X_index - int(N/2)
     Z_value = Z_index - int(N/2)
     k = (2 * math.pi * X_value / Lx, 2 * math.pi *  Z_value / Lz)
-    array[pos] = h_cuda(k, t, rng)
+    array[pos] = h_cuda(k, t,random_0, random_1)
 
 # mode helper functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -388,6 +388,7 @@ def DFT(X, Z, t):
 
     return np.multiply(update_y, factor)
 
+# Singe core without MPI, without Cuda
 def FFT(X, Z, t):
     h_hat = np.zeros((N, N),dtype=np.complex128)
     for x_index in range(X.shape[0]):
@@ -416,7 +417,7 @@ def FFT(X, Z, t):
 
     return np.multiply(update_y, factor)
 
-
+# Multi-core with MPI, without Cuda
 def FFT_P(X, Z, t, rank, num_of_workers):
     h_hat = np.zeros((N, N),dtype=np.complex128)
     if rank == 0:
@@ -449,12 +450,46 @@ def FFT_P(X, Z, t, rank, num_of_workers):
     else:
         return None
 
+# Single core without MPI, with Cuda
+def FFT_C(X, Z, t):
+    h_hat = np.zeros((N, N),dtype=np.complex128)
+    # xoroshiro128p_normal_float32 is problematic, use precalculated random
+    random_0 = np.random.normal(mu, sigma, N * N * 2)
+    random_1 = np.random.normal(mu, sigma, N * N * 2)
+    h_hat = np.zeros(N * N,dtype=np.complex128)
+    h_kernal[N, N](h_hat, t, random_0, random_1)
+    h_hat = h_hat.reshape((N, N))
+
+    factor = np.zeros((N, N))
+    for x_index in range(X.shape[0]):
+        for z_index in range(Z.shape[0]):
+            factor[x_index][z_index] = (-1) ** (int(X[x_index]) + int(Z[z_index]))
+
+   # this part can be make faster
+    update_y = np.zeros((N, N))
+    x_value = X[x_index]
+    z_value = Z[z_index]
+    N_array = np.arange(N)
+    M_array = np.arange(N).reshape((N, 1))
+
+    # z_hat = np.exp(2j * np.pi * M_array/N * z_value)
+    # firstFFT = np.dot(h_hat, z_hat)
+    firstFFT = np.apply_along_axis(fft_recursion, 1, h_hat)
+    firstFFT = firstFFT.T
+    secondFFT = np.apply_along_axis(fft_recursion, 1, firstFFT)
+    update_y = secondFFT.T.real
+
+    return np.multiply(update_y, factor)
+
+# Multi-core with MPI, with Cuda
 def FFT_PC(X, Z, t, rank, num_of_workers):
     h_hat = np.zeros((N, N),dtype=np.complex128)
+    # xoroshiro128p_normal_float32 is problematic, use precalculated random
+    random_0 = np.random.normal(mu, sigma, N * N * 2)
+    random_1 = np.random.normal(mu, sigma, N * N * 2)
     if rank == 0:
-        rng = create_xoroshiro128p_states(N * N, seed=1)
         h_hat = np.zeros(N * N,dtype=np.complex128)
-        h_kernal[N, N](h_hat, t, rng)
+        h_kernal[N, N](h_hat, t, random_0, random_1)
         h_hat = h_hat.reshape((N, N))
 
     h_hat = comm.bcast(h_hat, root=0)
@@ -509,7 +544,7 @@ if __name__ == '__main__':
         if method == "FFT_PC":
             if comm.size == 1:
                 # reduced to single score FFT
-                yarray[:,:,t] = FFT(x, z, t)
+                yarray[:,:,t] = FFT_C(x, z, t)
             else:
                 yarray[:,:,t] = FFT_PC(x, z, t, rank, comm.size)
     end = time.time()
@@ -530,8 +565,8 @@ if __name__ == '__main__':
         ani = animation.FuncAnimation(fig, update_plot, frame, fargs=(yarray, plot), interval=1)
         
         # save to local
-        mywriter = animation.PillowWriter(fps=5)
-        ani.save('temp.gif',writer=mywriter)
+        # mywriter = animation.PillowWriter(fps=5)
+        # ani.save('temp.gif',writer=mywriter)
 
         # show
         # plt.show()

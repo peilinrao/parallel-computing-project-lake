@@ -23,11 +23,12 @@ g = 9.8 # sorry newton
 
 @cuda.jit(device=True)
 def h0(k, conjugate, rng):
-    # epsilon_real = xoroshiro128p_normal_float32(rng, cuda.grid(1))
-    # epsilon_imag = xoroshiro128p_normal_float32(rng, cuda.grid(1))
+    rng = create_xoroshiro128p_states(N * N, seed = cuda.grid(1))
+    epsilon_real = xoroshiro128p_normal_float32(rng, cuda.grid(1))
+    epsilon_imag = xoroshiro128p_normal_float32(rng, cuda.grid(1))
 
-    epsilon_real = 0.05
-    epsilon_imag = 0.05
+    # epsilon_real = 0.05
+    # epsilon_imag = 0.05
 
     k_length = cmath.sqrt(k[0]**2 + k[1]**2)
 
@@ -75,18 +76,18 @@ def h_kernal(array, t, rng):
     array[pos] = h(k, t, rng)
 
 
-rng = create_xoroshiro128p_states(N * N, seed=1)
+rng = create_xoroshiro128p_states(N * N, seed = 1)
 h_hat = np.zeros(N * N,dtype=np.complex128)
 print('Initial array:', h_hat)
 h_kernal[N, N](h_hat, 1, rng)
-print('Result array:', h_hat)
+print('Result array:', h_hat.reshape((N, N)))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 def h0(k, conjugate = False):
     samples = np.random.normal(mu, sigma, 2)
-    epsilon_real = 0.05
-    epsilon_imag = 0.05
+    epsilon_real = samples[0]
+    epsilon_imag = samples[1]
 
     # epsilon_real = 0.05
     # epsilon_imag = 0.05
@@ -126,11 +127,11 @@ def h(k, t):
 
 X = np.arange(N) - int(N/2)
 Z = np.arange(N) - int(N/2)
-h_hat = np.zeros(N * N,dtype=np.complex128)
+h_hat = np.zeros((N, N),dtype=np.complex128)
 for x_index in range(X.shape[0]):
     for z_index in range(Z.shape[0]):
         k = (2 * np.pi * X[x_index] / Lx, 2 * np.pi *  Z[z_index] / Lz)
-        h_hat[x_index * N + z_index] = h(k, 1)
+        h_hat[x_index][z_index] = h(k, 1)
 print(h_hat)
 
 
