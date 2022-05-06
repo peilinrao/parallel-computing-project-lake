@@ -1,5 +1,10 @@
 # Lake - by Peilin Rao (peilinr) and Zheng Zhong (zhengzho)
 
+
+## Presentation
+
+https://drive.google.com/file/d/1cl3npeVgucno95QVSl2dOtneOwK4Ccgh/view?usp=sharing
+
 ## Summary
 We are going to implement a dynamic water surface simulator that can be accelerated by NVIDIA GPUs. 
 The simulation focuses on providing real dispersion properties of water waves and shows the behavior of water surface when interacts with objects.

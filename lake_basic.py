@@ -11,38 +11,63 @@ import sys
 from mpi4py import MPI
 from numba import cuda
 from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_normal_float32
+from timeit import default_timer as timer
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 # set of good looking parameters
-# (1) good and peace
+# (1) a little wave
 # N = M = Lx = Lz = 256
-# mu, sigma = 0, 0.001 # mean and standard deviation
-# Vw = 20 # wind velocity
-# Dw = (4, 4) # wind direction
-# frame = 5
-# A = 0.02 # magnitude
+# mu, sigma = 0, 1 # mean and standard deviation
+# Dw = (4, 0) # wind direction
+# frame = 20
+# Vw = 30 # wind velocity
+# A = 0.003**2 * 0.02 # magnitude
 
-# hyperparameters
-# (2) a little wave
+# qual1
+# N = M = Lx = Lz = 32
+# mu, sigma = 0, 1 # mean and standard deviation
+# Dw = (4, 0) # wind direction
+# frame = 20
+# Vw = 8 # wind velocity
+# A = 0.002 # magnitude
+
 N = M = Lx = Lz = 256
 mu, sigma = 0, 1 # mean and standard deviation
-Vw = 30 # wind velocity
 Dw = (4, 0) # wind direction
-frame = 20
+frame = 1
+Vw = 30 # wind velocity
 A = 0.003**2 * 0.02 # magnitude
+
+# qual2
+# N = M = Lx = Lz = 64
+# mu, sigma = 0, 1 # mean and standard deviation
+# Dw = (4, 0) # wind direction
+# frame = 20
+# Vw = 10 # wind velocity
+# A = 0.0002 # magnitude
+
+# qual3
+# N = M = Lx = Lz = 128
+# mu, sigma = 0, 1 # mean and standard deviation
+# Dw = (4, 0) # wind direction
+# frame = 20
+# Vw = 15 # wind velocity
+# A = 0.00001 # magnitude
+
 
 # constants
 epsilon = 0
 g = 9.8 # sorry newton
 
 
-# (x,z) is 2d coordinates and y is height
+# (x,z) is 2d coordinates and y is height 
 x = np.arange(N) - int(N/2)
 z = np.arange(N) - int(N/2)
 x_mesh, z_mesh = np.meshgrid(x, z)
 yarray = np.zeros((Lx, Lz, frame))
+GPU_total_time = 0
 
 # cuda helper functions +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -255,8 +280,8 @@ def make_term(m_or_n, x_or_z):
 # helper functions ends +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # brute force algorithm for lake algorithm
-def bf(X, Z, t):
-    update_y = np.zeros((Lx+1, Lz+1))
+def BF(X, Z, t):
+    update_y = np.zeros((N, N))
     for x_index in range(X.shape[0]):
         for z_index in  range(Z.shape[0]):
             x_value = X[x_index]
@@ -457,7 +482,10 @@ def FFT_C(X, Z, t):
     random_0 = np.random.normal(mu, sigma, N * N * 2)
     random_1 = np.random.normal(mu, sigma, N * N * 2)
     h_hat = np.zeros(N * N,dtype=np.complex128)
+    GPU_start = timer()
     h_kernal[N, N](h_hat, t, random_0, random_1)
+    GPU_end = timer()
+    GPU_time = GPU_end - GPU_start
     h_hat = h_hat.reshape((N, N))
 
     factor = np.zeros((N, N))
@@ -479,7 +507,7 @@ def FFT_C(X, Z, t):
     secondFFT = np.apply_along_axis(fft_recursion, 1, firstFFT)
     update_y = secondFFT.T.real
 
-    return np.multiply(update_y, factor)
+    return np.multiply(update_y, factor), GPU_time
 
 # Multi-core with MPI, with Cuda
 def FFT_PC(X, Z, t, rank, num_of_workers):
@@ -489,7 +517,10 @@ def FFT_PC(X, Z, t, rank, num_of_workers):
     random_1 = np.random.normal(mu, sigma, N * N * 2)
     if rank == 0:
         h_hat = np.zeros(N * N,dtype=np.complex128)
+        GPU_start = timer()
         h_kernal[N, N](h_hat, t, random_0, random_1)
+        GPU_end = timer()
+        GPU_time = GPU_end - GPU_start
         h_hat = h_hat.reshape((N, N))
 
     h_hat = comm.bcast(h_hat, root=0)
@@ -514,9 +545,9 @@ def FFT_PC(X, Z, t, rank, num_of_workers):
     if rank == 0:
         update_y = secondFFT.T.real
         result = np.multiply(update_y, factor)
-        return result
+        return result, GPU_time
     else:
-        return None
+        return None, 0
 
 
 if __name__ == '__main__':
@@ -525,12 +556,13 @@ if __name__ == '__main__':
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
+    GPU_total_time = 0
 
     # compute and draw
     start = time.time()
     for t in range(frame):
-        if method == "bf":
-            yarray[:,:,t] = bf(x, z, t)
+        if method == "BF":
+            yarray[:,:,t] = BF(x, z, t)
         if method == "DFT":
             yarray[:,:,t] = DFT(x, z, t)
         if method == "FFT":
@@ -544,13 +576,18 @@ if __name__ == '__main__':
         if method == "FFT_PC":
             if comm.size == 1:
                 # reduced to single score FFT
-                yarray[:,:,t] = FFT_C(x, z, t)
+                result, GPU_time = FFT_C(x, z, t)
+                yarray[:,:,t] = result
+                GPU_total_time += GPU_time
             else:
-                yarray[:,:,t] = FFT_PC(x, z, t, rank, comm.size)
+                result, GPU_time = FFT_PC(x, z, t, rank, comm.size)
+                yarray[:,:,t] = result
+                GPU_total_time += GPU_time
     end = time.time()
 
     if rank == 0:
         print("computation time needed:", end - start)
+        print("GPU time needed:", GPU_total_time)
 
         # anime
         fig = plt.figure(figsize=(12,12))
@@ -564,9 +601,10 @@ if __name__ == '__main__':
         ax.set_zlim(-25, 25)
         ani = animation.FuncAnimation(fig, update_plot, frame, fargs=(yarray, plot), interval=1)
         
-        # save to local
+        # # save to local
         # mywriter = animation.PillowWriter(fps=5)
-        # ani.save('temp.gif',writer=mywriter)
+        # ani.save('qual3.gif',writer=mywriter)
 
         # show
+        # plt.savefig("qual4.png")
         # plt.show()
