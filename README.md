@@ -2,7 +2,7 @@
 
 ## Execution
 
-To run the code use:
+To run the code use:  
 mpiexec -n [k] python -m mpi4py .\lake_basic.py [method]
 
 or 
