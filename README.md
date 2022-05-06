@@ -3,12 +3,20 @@
 ## Execution
 
 To run the code use:  
-
-mpiexec -n [k] python -m mpi4py .\lake_basic.py [method]
+ <html>
+     <head>
+        mpiexec -n [k] python -m mpi4py .\lake_basic.py [method]
+    </head>
+  </html>
 
 or 
 
-python -m mpi4py .\lake_basic.py [method]
+<html>
+     <head>
+       python -m mpi4py .\lake_basic.py [method]
+    </head>
+  </html>
+
 
 First command can run any method but the second command cannot run method 4 or 5.
 k: any power of two value
