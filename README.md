@@ -47,13 +47,12 @@ the triangular mesh of those points moving over time. We would also use parallei
 acceleration.
 
 ## Challenge
-Although we've did some research in the implementation of water wave simulation, the effect of this multiresolution dispersion kernel mechanism remains unclear for us. The determination of where, when and how to do synchronization between blocks is challenging. Besides, finding the balance between computational cost and simulation accuracy in this implementation can be hard.  We hope to learn good methods and give some improvement on parallizing computer graphics code in this project.
-
-## Workload
-There is a high communication to computation ratio in this pyramid generation kernels. Also the layers of adjustments (for example a rock is thrown into the lake, or some wind approaches the water surface, causing different particle behavior of the water surface) should be able to access with good locality and communicate between thread/blocks with the minimum information transfering.
-
-## Constraints
-The randomness of the disturbing position of the water surface can easily create workload imbalancing in parallization this computation. We need to find a good way to balance the workload per thread when different extents disturbing happens at arbitrary position.
+Water wave simulation is naturally a hard problem. The math and physics behind is complex. Even after
+we implement this model we need to find good way of utilizing parallelization. Ideas such as MPI or 
+CUDA implementation requires rewrites of sequential code and introduce some constaints on mapping cores
+or threads to jobs. The computation complexity lays under two places: the physics simulation workload and
+the workload introduced by parallelization. We hope to learn good methods and give some improvement on
+parallizing computer graphics code in this project.
 
 ## Resources
 Jerry Tessendorf. Simulating ocean water. pp. 26, 2004.
