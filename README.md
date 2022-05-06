@@ -3,6 +3,7 @@
 ## Execution
 
 To run the code use:  
+
 mpiexec -n [k] python -m mpi4py .\lake_basic.py [method]
 
 or 
@@ -23,16 +24,30 @@ method:
 https://drive.google.com/file/d/1cl3npeVgucno95QVSl2dOtneOwK4Ccgh/view?usp=sharing
 
 ## Summary
-We are going to implement a dynamic water surface simulator that can be accelerated by NVIDIA GPUs. 
-The simulation focuses on providing real dispersion properties of water waves and shows the behavior of water surface when interacts with objects.
+In this project, we use a method of simulating water surface with statistical model Tessendorf (2004).
+Using statistical model gives more realistic result but it is much more computational expensive than
+the approximation model, which tends to oversimplify the water surface to a linear combination of
+sin waves. After we implement this statistical model with the brute force algorithm, we modify it
+to get a good vectorization version of SIMD optimization. Then, we find out the calculation in the
+model can be decomposed into two Fourier transforms, which can be accelerated with Fast Fourier
+Transform algorithm. We implement a parallel version of Fast Fourier Transfer with Message Passing
+Interface. Finally, we add CUDA supports in our simulation which greatly reduces the computation
+time. With MPI and CUDA, our implementation achieves a significant speedup compared to the
+sequential version. We would like to elaborate our implementation and discussion experimental
+results on different inputs. Figure 1 shows a example of our simulator. You are more than welcome to
+run our code and generate an gif simulation or have a look at the sample gif simulation on our Github
+page 1.
 
 ## Background
-The application we are going to implement is a simulation of the water surface that is constantly being disturbed.
-The fluid simulation is actually a multi-layered computation. The most common way of doing this is to adopt pyramid generation kernels. 
-We will implement a multiresolution dispersion kernel with low-frequency compensation that supports interaction with objects and shadow mask propagation. The multilayer particle-wise upsampling and downsampling involved in implementing this multiresolution dispersion kernel can be benefit from parallel programming. A CUDA based solution breaks the water surface into different blocks, performs shared-varibale computation within blocks and synchronize between blocks after each layer of computation.
+We would like to begin by giving some characteristics and constraints considered in the statistical
+model before talking about its implementation, as the theory behind this model is entirely provided
+by this paper Tessendorf (2004). We would not focus on any rendering problem such as lighting or
+coloring since this is not a project for computer graphics course. Instead, we only consider the height
+(y) change of a tile of points in 3D dimension with fixed x and z values. The output of our program is
+the triangular mesh of those points moving over time.
 
 ## Challenge
-Although we've did some research in the implementation of water wave simulation, the effect of this multiresolution dispersion kernel mechanism remains unclear for us. The determination of where, when and how to do synchronization between blocks is challenging. Besides, finding the balance between computational cost and simulation accuracy in this implementation can be hard.  We hope to learn good methods and give some improvement on parallizing computer graphics code in this project.
+Using mixing parallel technology is challenging
 
 ## Workload
 There is a high communication to computation ratio in this pyramid generation kernels. Also the layers of adjustments (for example a rock is thrown into the lake, or some wind approaches the water surface, causing different particle behavior of the water surface) should be able to access with good locality and communicate between thread/blocks with the minimum information transfering.
