@@ -47,7 +47,7 @@ coloring since this is not a project for computer graphics course. Instead, we o
 the triangular mesh of those points moving over time.
 
 ## Challenge
-Using mixing parallel technology is challenging
+Although we've did some research in the implementation of water wave simulation, the effect of this multiresolution dispersion kernel mechanism remains unclear for us. The determination of where, when and how to do synchronization between blocks is challenging. Besides, finding the balance between computational cost and simulation accuracy in this implementation can be hard.  We hope to learn good methods and give some improvement on parallizing computer graphics code in this project.
 
 ## Workload
 There is a high communication to computation ratio in this pyramid generation kernels. Also the layers of adjustments (for example a rock is thrown into the lake, or some wind approaches the water surface, causing different particle behavior of the water surface) should be able to access with good locality and communicate between thread/blocks with the minimum information transfering.
