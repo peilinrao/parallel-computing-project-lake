@@ -27,7 +27,7 @@ https://github.com/peilinrao/parallel-computing-project-lake/blob/main/Final%20R
 https://drive.google.com/file/d/1cl3npeVgucno95QVSl2dOtneOwK4Ccgh/view?usp=sharing
 
 ## Summary
-In this project, we use a method of simulating water surface with statistical model Tessendorf (2004).
+In this project, we use a method of simulating water surface with statistical model.
 Using statistical model gives more realistic result but it is much more computational expensive than
 the approximation model, which tends to oversimplify the water surface to a linear combination of
 sin waves. After we implement this statistical model with the brute force algorithm, we modify it
@@ -37,9 +37,7 @@ Transform algorithm. We implement a parallel version of Fast Fourier Transfer wi
 Interface. Finally, we add CUDA supports in our simulation which greatly reduces the computation
 time. With MPI and CUDA, our implementation achieves a significant speedup compared to the
 sequential version. We would like to elaborate our implementation and discussion experimental
-results on different inputs. Figure 1 shows a example of our simulator. You are more than welcome to
-run our code and generate an gif simulation or have a look at the sample gif simulation on our Github
-page 1.
+results on different inputs. 
 
 ## Background
 We would like to begin by giving some characteristics and constraints considered in the statistical
@@ -59,7 +57,7 @@ There is a high communication to computation ratio in this pyramid generation ke
 The randomness of the disturbing position of the water surface can easily create workload imbalancing in parallization this computation. We need to find a good way to balance the workload per thread when different extents disturbing happens at arbitrary position.
 
 ## Resources
-Our inspiration of this project comes from [this paper](http://www.gmrv.es/Publications/2016/CMTKPO16/main.pdf), which ellaborate on the methods of designing a " compact multiresolution dispersion kernel" for fluid simulation that is based on pyramid kernels. 
+Jerry Tessendorf. Simulating ocean water. pp. 26, 2004.
 
 ## Goal and Deliverables
 
@@ -72,8 +70,7 @@ EXTRA GOAL ("125")： improve the algorithm of multiresolution dispersion kernel
 Our poster session's demo would be interactive. Other students can see our lake simulation dynamically changing when they "throw" an object into the water. They can directly see the speedup by parallislem during any time period or over any action taken.  
 
 ## Platform Choice
-We plan to use C++ with CUDA support for implementation and OpenGL for persenting the simulating results. We choose to use CUDA since NVIDIA GPUs are the most common way to accelerate computer graphics algorithms. OpenGL is powerful enough to draw the waves in order to present our beautiful simulated lake.
-
+We plan to use C++ with CUDA support for implementation and MPI for accelerating FFT. We choose to use CUDA since NVIDIA GPUs are the most common way to accelerate computer graphics algorithms.
 ## Schedule
 3.23 - 4.11[Done]: read the paper and plan for our implementation <br />
 4.11 - 4.20: implement the sequential version <br />
