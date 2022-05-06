@@ -11,7 +11,7 @@ or
 
 First command can run any method but the second command cannot run method 4 or 5.  
 k: any power of two value
-method:   
+method:  
 (1) BF: Brute Force without any vectorization  
 (2) DFT: Vectorized Discrete Fourier Transform  
 (3) FFT: Vectorized Fast Fourier Transform  
