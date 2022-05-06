@@ -40,11 +40,11 @@ results on different inputs.
 
 ## Background
 We would like to begin by giving some characteristics and constraints considered in the statistical
-model before talking about its implementation, as the theory behind this model is entirely provided
-by this paper Tessendorf (2004). We would not focus on any rendering problem such as lighting or
+model before talking about its implementation. We would not focus on any rendering problem such as lighting or
 coloring since this is not a project for computer graphics course. Instead, we only consider the height
 (y) change of a tile of points in 3D dimension with fixed x and z values. The output of our program is
-the triangular mesh of those points moving over time.
+the triangular mesh of those points moving over time. We would also use paralleized FFT with MPI for 
+acceleration.
 
 ## Challenge
 Although we've did some research in the implementation of water wave simulation, the effect of this multiresolution dispersion kernel mechanism remains unclear for us. The determination of where, when and how to do synchronization between blocks is challenging. Besides, finding the balance between computational cost and simulation accuracy in this implementation can be hard.  We hope to learn good methods and give some improvement on parallizing computer graphics code in this project.
