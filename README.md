@@ -1,5 +1,22 @@
 # Lake - by Peilin Rao (peilinr) and Zheng Zhong (zhengzho)
 
+## Execution
+
+To run the code use:
+mpiexec -n [k] python -m mpi4py .\lake_basic.py [method]
+
+or 
+
+python -m mpi4py .\lake_basic.py [method]
+
+First command can run any method but the second command cannot run method 4 or 5.
+k: any power of two value
+method: 
+(1) BF: Brute Force without any vectorization
+(2) DFT: Vectorized Discrete Fourier Transform
+(3) FFT: Vectorized Fast Fourier Transform
+(4) FFT_P: Vectorized MPI-Parallel Fast Fourier Transform
+(5) FFT_PC: Vectorized MPI-Parallel Fast Fourier Transform with Cuda Acceleration
 
 ## Presentation
 
