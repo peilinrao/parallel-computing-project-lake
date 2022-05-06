@@ -1,4 +1,4 @@
-# Lake - by Peilin Rao (peilinr) and Zheng Zhong (zhengzho)
+# Project Lake - by Peilin Rao (peilinr) and Zheng Zhong (zhengzho)
 
 ## Execution
 
@@ -59,16 +59,17 @@ Jerry Tessendorf. Simulating ocean water. pp. 26, 2004.
 
 ## Goal and Deliverables
 
-HOPE TO ACHIEVE ("75%"): fully functional parallelized water wave simulation without features such as reflecting boundary (wave reflects when touching the shore) and shadow mask propogation (a method that improves the efficient shared memory usage).  
+HOPE TO ACHIEVE ("75%"): fully functional vectorized water wave simulation
 
-PLAN TO ACHIEVE ("100%"): fully functional parallelized water wave simulation with features such as reflecting boundary and shadow mask propogation.  
+PLAN TO ACHIEVE ("100%"): fully functional vectorized water wave simulation with MPI-Parallel FFT
 
-EXTRA GOAL ("125")： improve the algorithm of multiresolution dispersion kernel with either better resolution/visual effects or better performance. 
+EXTRA GOAL ("125")： fully functional vectorized water wave simulation with MPI-Parallel FFT and CUDA Acceleration
 
-Our poster session's demo would be interactive. Other students can see our lake simulation dynamically changing when they "throw" an object into the water. They can directly see the speedup by parallislem during any time period or over any action taken.  
+Our poster session's demo would be interactive. Others can play with our code to adjust wind velocity, wind direction, methods or sample sizes. 
 
 ## Platform Choice
 We plan to use C++ with CUDA support for implementation and MPI for accelerating FFT. We choose to use CUDA since NVIDIA GPUs are the most common way to accelerate computer graphics algorithms.
+
 ## Schedule
 3.23 - 4.11[Done]: read the paper and plan for our implementation <br />
 4.11 - 4.20: implement the sequential version <br />
