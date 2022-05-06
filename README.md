@@ -9,7 +9,7 @@ or
 
     python -m mpi4py .\lake_basic.py [method]
 
-First command can run any method but the second command cannot run method 4 or 5.
+First command can run any method but the second command cannot run method 4 or 5.  
 k: any power of two value
 method:   
 (1) BF: Brute Force without any vectorization  
