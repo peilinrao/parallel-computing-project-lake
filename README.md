@@ -19,6 +19,9 @@ method:
 (4) FFT_P: Vectorized MPI-Parallel Fast Fourier Transform
 (5) FFT_PC: Vectorized MPI-Parallel Fast Fourier Transform with Cuda Acceleration
 
+## Final Report
+https://github.com/peilinrao/parallel-computing-project-lake/blob/main/Final%20Report.pdf
+
 ## Presentation
 
 https://drive.google.com/file/d/1cl3npeVgucno95QVSl2dOtneOwK4Ccgh/view?usp=sharing
